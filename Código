@@ -1,0 +1,372 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Cliente {
+  char nome[50];
+  char sexo;
+  int idade;
+};
+typedef struct Cliente cliente;
+
+struct Venda {
+  cliente cliente;
+  int numItens;
+  int saboresPizza;
+  float valorTotal;
+};
+typedef struct Venda venda;
+
+int ValidarVenda(venda *v, int qtdvendas);
+int ValidarSexo(char sexo);
+int ValidarNome(char nome[50]);
+void imprimirVendas(venda *v, int qtdVendas);
+void verTodasInformacoes(venda *v, int qtdVendas);
+int baixarVendasDoArquivo(venda **vendas, int *qtdVendas);
+void cadastrarVendas(venda **vendas, int *qtdvendas, int *validador);
+void pesquisarVendaEspecifica(venda *vendas, int qtdvendas);
+int main() {
+  venda *vendas;
+  int qtdvendas;
+  FILE *arquivo;
+  int validador = 0;
+  int opcaoCadastro = 0;
+  char entrada[10];
+  int sucesso = 0;
+  int respostaVendaEspecifica = 0;
+  int encontrouVendaEspecifica = 0;
+  int escolha = 0;
+  cliente pesquisarCliente;
+  arquivo = fopen("pizzaria.txt", "a");
+  fclose(arquivo);
+  baixarVendasDoArquivo(&vendas, &qtdvendas);
+  while (escolha != 4) {
+    printf("\n1.Cadastrar novas vendas:");
+    printf("\n2.Ver informações de uma venda específica:");
+    printf("\n3.Ver informações de todas as vendas:");
+    printf("\n4.Encerrar o programa:\n");
+
+    printf("\nEscolha uma opção: ");
+    scanf("%d", &escolha);
+
+    switch (escolha) {
+    case 1:
+      do {
+        cadastrarVendas(&vendas, &qtdvendas, &validador);
+
+        printf("\nDeseja cadastrar mais uma venda?");
+        printf("\n1. Sim");
+        printf("\n2. Não\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcaoCadastro);
+
+        while (opcaoCadastro != 1 && opcaoCadastro != 2) {
+          printf("\nOpção inválida. Digite 1 para Sim ou 2 para Não: ");
+          scanf("%d", &opcaoCadastro);
+        }
+
+      } while (opcaoCadastro == 1);
+
+      break;
+    case 2:
+      pesquisarVendaEspecifica(vendas, qtdvendas);
+      break;
+    case 3:
+      verTodasInformacoes(vendas, qtdvendas);
+      break;
+    case 4:
+      if (vendas != NULL) {
+        free(vendas);
+        vendas = NULL;
+      }
+      printf("Programa encerrado.\n");
+      break;
+
+    default:
+      printf("\nOpção inválida\n");
+    }
+  }
+
+  return 0;
+}
+//----------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------------
+int ValidarSexo(char sexo) {
+  if (sexo != 'm' && sexo != 'f' && sexo != 'n') {
+    printf("Sexo inválido.\n");
+    return 0;
+  }
+  return 1;
+}
+
+int ValidarNome(char nome[50]) {
+  if (strlen(nome) < 5) {
+    printf("Nome inválido: o nome deve haver pelo menos 5 caracteres!\n");
+    return 0;
+  }
+  return 1;
+}
+
+int ValidarVenda(venda *v, int qtdvendas) {
+  int erro = 0;
+
+  for (int i = 0; i < qtdvendas; i++) {
+
+    if (!ValidarNome(v[i].cliente.nome)) {
+      erro = 1;
+    }
+
+    if (!ValidarSexo(v[i].cliente.sexo)) {
+      erro = 1;
+    }
+
+    if (v[i].saboresPizza > 2) {
+      // printf("Número de sabores inválido, só pode até 2 sabores.\n");
+      erro = 1;
+    }
+
+    if (v[i].numItens <= 0) {
+      // printf("Número de itens inválido.\n");
+      erro = 1;
+    }
+  }
+  return !erro;
+}
+
+void pesquisarVendaEspecifica(venda *vendas, int qtdvendas) {
+  int respostaVendaEspecifica = 0;
+  int encontrouVendaEspecifica = 0;
+  cliente pesquisarCliente;
+
+  while (respostaVendaEspecifica != 2) {
+    getchar();
+    encontrouVendaEspecifica = 0;
+    printf("Digite o nome do cliente que você quer pesquisar: ");
+    fgets(pesquisarCliente.nome, sizeof(pesquisarCliente.nome), stdin);
+    pesquisarCliente.nome[strcspn(pesquisarCliente.nome, "\n")] = 0;
+    for (int i = 0; i < qtdvendas; i++) {
+      if (strcmp(pesquisarCliente.nome, vendas[i].cliente.nome) == 0) {
+        printf("\nNome do cliente: %s", vendas[i].cliente.nome);
+        printf("\nValor total: %.2f", vendas[i].valorTotal);
+        printf("\nQuantidade de itens: %d", vendas[i].numItens);
+        printf("\nQuantidade de sabores: %d", vendas[i].saboresPizza);
+        encontrouVendaEspecifica = 1;
+      }
+    }
+    if (encontrouVendaEspecifica == 0) {
+      printf("\nVenda não encontrada!");
+    }
+    printf(
+        "\nDeseja pesquisar informações de outro cliente? (Escolha 1 ou 2): ");
+    printf("\n1.Sim ");
+    printf("\n2.Não\n");
+    scanf("%d", &respostaVendaEspecifica);
+  }
+}
+
+void verTodasInformacoes(venda *v, int qtdVendas) {
+  int valorParametro = 0, qtdParametro = 0;
+  int qtdUmItem = 0, qtdSaboresImpar = 0;
+  int qtdSexoN = 0, qtdTotalItens = 0;
+  int menorTamanhoNome = 0, maiorIdade = 0;
+  float valorTotalDasVendas = 0, somaValorMulheres = 0;
+  float valorMedioVenda = 0;
+  printf("Digite o valor parâmetro para ver quantas vendas foram abaixo: ");
+  scanf("%d", &valorParametro);
+  for (int i = 0; i < qtdVendas; i++) {
+    if (v[i].valorTotal < valorParametro) {
+      qtdParametro++;
+    }
+    if (v[i].numItens == 1) {
+      qtdUmItem++;
+    }
+    if (v[i].saboresPizza % 2 != 0) {
+      qtdSaboresImpar++;
+    }
+    if (v[i].cliente.sexo == 'n') {
+      qtdSexoN++;
+    }
+    if (v[i].cliente.sexo == 'f') {
+      somaValorMulheres += v[i].valorTotal;
+    }
+    qtdTotalItens += v[i].numItens;
+    valorTotalDasVendas += v[i].valorTotal;
+    if (strlen(v[i].cliente.nome) < menorTamanhoNome || i == 0) {
+      menorTamanhoNome = strlen(v[i].cliente.nome);
+    }
+    if (v[i].cliente.idade > maiorIdade || i == 0) {
+      maiorIdade = v[i].cliente.idade;
+    }
+  }
+  valorMedioVenda = valorTotalDasVendas / qtdVendas;
+  printf("\nQuantidade de vendas com valor menor que valor parâmetro: %d",
+         qtdParametro);
+  printf("\nQuantidade de vendas que tiveram apenas um item: %d", qtdUmItem);
+  printf("\nQuantidade de vendas que tiveram o número de sabores ímpar: %d",
+         qtdSaboresImpar);
+  printf("\nQuantidade de clientes que não informaram o sexo: %d", qtdSexoN);
+  printf("\nValor total pago por mulheres: %.2f", somaValorMulheres);
+  printf("\nQuantidade total de itens vendidos: %d", qtdTotalItens);
+  printf("\nValor médio de uma venda: %.2f", valorMedioVenda);
+  for (int i = 0; i < qtdVendas; i++) {
+    if (strlen(v[i].cliente.nome) == menorTamanhoNome) {
+      printf(
+          "\nInformações do cliente com menor nome: \n Nome: %s \n Idade: %d "
+          "\n Sexo: %c",
+          v[i].cliente.nome, v[i].cliente.idade, v[i].cliente.sexo);
+      printf("\nNúmero de itens: %d", v[i].numItens);
+      printf("\nNúmero de sabores: %d", v[i].saboresPizza);
+      printf("\nValor total da compra: %.2f", v[i].valorTotal);
+    }
+  }
+  for (int i = 0; i < qtdVendas; i++) {
+    if (v[i].cliente.idade == maiorIdade) {
+      printf("\nInformações do cliente mais velho: \n Nome: %s \n Idade: %d \n "
+             "Sexo: %c",
+             v[i].cliente.nome, v[i].cliente.idade, v[i].cliente.sexo);
+      printf("\nNúmero de itens: %d", v[i].numItens);
+      printf("\nNúmero de sabores: %d", v[i].saboresPizza);
+      printf("\nValor total da compra: %.2f", v[i].valorTotal);
+    }
+  }
+}
+int baixarVendasDoArquivo(venda **vendas, int *qtdVendas) {
+  FILE *arquivo = fopen("pizzaria.txt", "r");
+  if (arquivo == NULL) {
+    printf("Erro ao abrir o arquivo.");
+    return 1;
+  }
+  int linhasEncontradas = 0;
+  venda *vendasTemp;
+  char linha[100];
+  int contadorAumento = 0;
+  venda venda1;
+  *vendas = NULL;
+  while (fscanf(arquivo, "%49[^/]/%c/%d/%d/%d/%f\n", venda1.cliente.nome,
+                &venda1.cliente.sexo, &venda1.cliente.idade, &venda1.numItens,
+                &venda1.saboresPizza, &venda1.valorTotal) == 6) {
+    vendasTemp = realloc(*vendas, (contadorAumento + 1) * sizeof(venda));
+    if (vendasTemp == NULL) {
+      printf("Erro na alocação.");
+      fclose(arquivo);
+      return contadorAumento;
+    }
+    *vendas = vendasTemp;
+    (*vendas)[contadorAumento] = venda1;
+    contadorAumento++;
+  }
+  fclose(arquivo);
+  *qtdVendas = contadorAumento;
+  return contadorAumento;
+}
+
+void cadastrarVendas(venda **vendas, int *qtdvendas, int *validador) {
+  FILE *arquivo;
+  int novasVendas;
+
+  printf("Digite a quantidade de vendas que deseja cadastrar: ");
+  scanf("%d", &novasVendas);
+
+  while (novasVendas <= 0) {
+    printf("Quantidade inválida. Tente novamente: ");
+    scanf("%d", &novasVendas);
+  }
+
+  // *vendas = malloc((*qtdvendas) * sizeof(venda));
+  venda *temp = realloc(*vendas, (*qtdvendas + novasVendas) * sizeof(venda));
+
+  if (temp == NULL) {
+    printf("Erro de alocação de memória.\n");
+    return;
+  }
+  *vendas = temp;
+
+  for (int i = *qtdvendas; i < *qtdvendas + novasVendas; i++) {
+    int erro = 0;
+
+    while (getchar() != '\n')
+      ;
+
+    do {
+      printf("Digite o seu nome: ");
+      fgets((*vendas)[i].cliente.nome, sizeof((*vendas)[i].cliente.nome),
+            stdin);
+      (*vendas)[i].cliente.nome[strcspn((*vendas)[i].cliente.nome, "\n")] = 0;
+      if (!ValidarNome((*vendas)[i].cliente.nome)) {
+      } else {
+        break;
+      }
+    } while (1);
+
+    do {
+      printf("Digite o seu sexo (m/f/n): ");
+      scanf(" %c", &(*vendas)[i].cliente.sexo);
+      ;
+      if (!ValidarSexo((*vendas)[i].cliente.sexo)) {
+
+      } else {
+        break;
+      }
+    } while (1);
+
+    do {
+      printf("Digite a sua idade: ");
+      scanf("%d", &(*vendas)[i].cliente.idade);
+      if ((*vendas)[i].cliente.idade <= 0) {
+        printf("Idade inválida.\n");
+      } else {
+        break;
+      }
+    } while (1);
+
+    do {
+      printf("Digite o número de itens desejados: ");
+      scanf("%d", &(*vendas)[i].numItens);
+      if ((*vendas)[i].numItens <= 0) {
+        printf("Número de itens inválido.\n");
+
+      } else {
+        break;
+      }
+    } while (1);
+
+    do {
+      printf("Digite o número de sabores: ");
+      scanf("%d", &(*vendas)[i].saboresPizza);
+      if ((*vendas)[i].saboresPizza > 2) {
+        printf("Número de sabores inválido, só pode até 2 sabores.\n");
+
+      } else {
+        break;
+      }
+    } while (1);
+
+    printf("Digite o valor total: ");
+    scanf("%f", &(*vendas)[i].valorTotal);
+
+    (*validador)++;
+
+    if (!erro) {
+      (*validador)++;
+      printf("Cadastrado(a) com sucesso!\n");
+    } else {
+      printf("Erro no cadastro!\n");
+    }
+  }
+
+  *qtdvendas += novasVendas;
+
+  arquivo = fopen("pizzaria.txt", "a");
+  if (arquivo == NULL) {
+    printf("Erro ao abrir o arquivo.");
+    return;
+  }
+  for (int i = 0; i < *qtdvendas; i++) {
+    fprintf(arquivo, "%s/%c/%d/%d/%d/%.2f\n", (*vendas)[i].cliente.nome,
+            (*vendas)[i].cliente.sexo, (*vendas)[i].cliente.idade,
+            (*vendas)[i].numItens, (*vendas)[i].saboresPizza,
+            (*vendas)[i].valorTotal);
+  }
+
+  fclose(arquivo);
+}
